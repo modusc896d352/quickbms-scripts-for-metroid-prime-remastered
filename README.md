@@ -19,7 +19,7 @@ Said "bigfile" may have a bunch of textures, sounds, models and compiled scripts
 
 What follows are optional META and STRG chunks, the former more prevalent than the other. The META chunk has all the metadata relating to a lot of in-game assets, and said metadata varies per asset. As for the STRG chunk, it simply provides an name for that asset.
 
-**MaterialArchive.arc** is an unique case, however. This file is present across all games listed above and uses an entirely different set of chunks meant for loading materials from a part of an 3D model that requires such to be present in-game.
+**MaterialArchive.arc** is an unique case, however. This file is present across all games listed above and uses an entirely different set of chunks meant for loading materials from a part of an 3D model that requires such to be present in-game. This script does not deal with that file very well, so I'd suggest you don't think too much of it until I add proper support for it.
 
 ### Notes about using this script.
 This script may require the latest quickBMS version available (get it [here](https://aluigi.altervista.org/quickbms.htm) first, you'll need it).
