@@ -1,0 +1,338 @@
+# Donkey Kong Country: Tropical Freeze (Wii U, Switch) - "RFRM" files
+# Metroid Prime Remastered (Switch) - "RFRM" files
+# ---
+# this script doesn't export any in-game asset yet, it just reads dozens upon dozens of chunk metadata and nothing else.
+# ---
+# MaterialArchive.arc (that one file present in all Retro Studios' games starting with Tropical Freeze) isn't fully supported yet.
+# ---
+# (todo) port all of this to C++
+# (todo) acutally support Tropical Freeze files
+
+get pak_name1 filename
+get pak_name2 basename
+
+math pos1 = 0
+math rfrm_pos = 0
+math adir_pos = 0
+math meta_pos1 = 0
+math meta_pos2 = 0
+math strg_pos = 0
+/*
+math sdx_pos = 0
+*/
+
+math is_pack = 0
+math is_tocc = 0
+math is_adir = 0
+math is_meta = 0
+math is_strg = 0
+/*
+math is_mtrl = 0
+math is_sdx = 0
+*/
+math done = 1
+math strg_without_meta = 0
+
+math pack_endian_flag = 0
+
+math adir_entries = 0
+math meta_entries = 0
+math strg_entries = 0
+
+goto 0
+getdstring is_rfrm 4
+if is_rfrm != "RFRM"
+	print " not an RFRM file. "
+	cleanexit
+endif
+
+for wip = 0 < done
+	goto pos1
+	math rfrm_pos = pos1
+	callfunction parse_rfrm 1
+	math pos1 = rfrm_pos
+next wip
+
+if is_pack != 1
+	print " PACK chunk - not present "
+else
+	print " PACK chunk - present "
+endif
+if is_tocc != 1
+	print " TOCC chunk - not present "
+else
+	print " TOCC chunk - present "
+endif
+if is_adir != 1
+	print " ADIR chunk - not present "
+else
+	print " ADIR chunk - present "
+endif
+if is_meta != 1
+	print " META chunk - not present "
+else
+	print " META chunk - present "
+endif
+if is_strg != 1
+	print " STRG chunk - not present "
+else
+	print " STRG chunk - present "
+endif
+
+if is_pack == 1
+if is_tocc == 1
+	if is_adir == 1
+		for adir_i = 0 < adir_entries
+			goto adir_pos
+			getdstring entry_type_id 4
+			get entry_signature1 long
+			get entry_signature2 long
+			get entry_signature3 long
+			get entry_signature4 long
+			get entry_properties1 long
+			get entry_properties2 long
+			get entry_offset longlong
+			get decompressed_entry_size longlong
+			get compressed_entry_size longlong
+			math adir_pos + 52
+			if is_meta != 1
+				if is_strg == 1
+					math strg_without_meta = 1
+				endif
+			endif
+			set adir_warning1 string ""
+			set adir_warning2 string ""
+			set temp_name1 string ""
+			set temp_name2 string ""
+			if strg_without_meta != 1
+				string temp_name1 p "%05d_[%08x_%08x_%08x_%08x].%s" adir_i entry_signature1 entry_signature2 entry_signature3 entry_signature4 entry_type_id
+			else
+				goto strg_pos
+				getdstring entry_type_id_in_reverse 4
+				get entry_signature1_alt1 long
+				if entry_signature1_alt1 != entry_signature1
+					print " entry signature 1 mismatch "
+				endif
+				get entry_signature2_alt1 long
+				if entry_signature2_alt1 != entry_signature2
+					print " entry signature 1 mismatch "
+				endif
+				get entry_signature3_alt1 long
+				if entry_signature3_alt1 != entry_signature3
+					print " entry signature 1 mismatch "
+				endif
+				get entry_signature4_alt1 long
+				if entry_signature4_alt1 != entry_signature4
+					print " entry signature 1 mismatch "
+				endif
+				get entry_string_size long
+				getdstring entry_string entry_string_size
+				math strg_pos + 24
+				math strg_pos + entry_string_size
+				string temp_name1 p "%s.%s" entry_string entry_type_id
+			endif
+			if decompressed_entry_size != compressed_entry_size
+				string adir_warning1 p " ADIR entry %d is compressed. " adir_i
+				print "%adir_warning1%"
+				string adir_warning2 p " i cannot figure it out what that is ATM as details around this one are still hazy here, but don't count on me for that. "
+				print "%adir_warning2%"
+				if is_strg != 1
+					string temp_name2 p "compressed/%s" temp_name1
+				else
+					string temp_name2 p "compressed/%s" temp_name1
+				endif
+			else
+				set temp_name2 string temp_name1
+			endif
+			log temp_name2 entry_offset compressed_entry_size
+		next adir_i
+	endif
+	/*
+	if is_adir == 1
+		for adir_i = 0 < adir_entries
+			goto adir_pos
+			getdstring entry_type_id 4
+			get entry_signature1 long
+			get entry_signature2 long
+			get entry_signature3 long
+			get entry_signature4 long
+			get entry_properties1 long
+			get entry_properties2 long
+			get entry_offset longlong
+			get decompressed_entry_size longlong
+			get compressed_entry_size longlong
+			math adir_pos + 52
+		next adir_i
+	endif
+	if is_meta == 1
+		for meta_i = 0 < meta_entries
+			goto meta_pos1
+			get entry_signature1 long
+			get entry_signature2 long
+			get entry_signature3 long
+			get entry_signature4 long
+			get entry_metadata_address long
+			math entry_metadata_address + meta_pos2
+			goto entry_metadata_address
+			get entry_metadata_size long
+			getdstring entry_metadata entry_metadata_size
+			math meta_pos1 + 20
+		next meta_i
+	endif
+	if is_strg == 1
+		for strg_i = 0 < strg_entries
+			goto strg_pos
+			getdstring entry_type_id_in_reverse 4
+			get entry_signature1 long
+			get entry_signature2 long
+			get entry_signature3 long
+			get entry_signature4 long
+			get entry_string_size long
+			getdstring entry_string entry_string_size
+			math strg_pos + 24
+			math strg_pos + entry_string_size
+		next strg_i
+	endif
+	*/
+endif
+endif
+
+
+startfunction parse_rfrm
+	goto rfrm_pos
+	getdstring rfrm_id1 4
+	get rfrm_size longlong
+	if rfrm_pos == 0
+		# hacky workaround for Tropical Freeze WiiU files
+		if rfrm_size > 0xffffffff
+			endian big
+		else
+			endian little
+		endif
+		goto rfrm_pos
+		getdstring rfrm_id1 4
+		get rfrm_size longlong
+	endif
+	if rfrm_id1 == ""
+		if rfrm_size == 0
+			cleanexit
+		endif
+	endif
+	math rfrm_pos + 12
+	if rfrm_id1 == "RFRM"
+		get rfrm_info2 long
+		get rfrm_info3 long
+		getdstring rfrm_id2 4
+		get rfrm_info4 long
+		get rfrm_info5 long
+		math rfrm_pos + 20
+		if rfrm_info4 == rfrm_info5
+			if rfrm_id2 == "PACK"
+				xmath pack_endian_flag "rfrm_info4 & 1"
+				if pack_endian_flag == 1
+					endian little
+				elif pack_endian_flag == 0
+					endian big
+				endif
+				math is_pack = 1
+				math done + 1
+			elif rfrm_id2 == "TOCC"
+				math is_tocc = 1
+				math done + 1
+			/*
+			elif rfrm_id2 == "MTRL"
+				math is_mtrl = 1
+				math done = 2
+			*/
+			else
+				math rfrm_pos + rfrm_size
+			endif
+		else
+			math rfrm_pos + rfrm_size
+		endif
+	elif rfrm_id1 == "ADIR"
+		if is_pack != 1
+			cleanexit
+		endif
+		if is_tocc != 1
+			cleanexit
+		endif
+		math is_adir = 1
+		math done + 1
+		get adir_info2 long
+		get adir_info3 long
+		get adir_info4 long
+		math rfrm_pos + 12
+		get adir_info5 long
+		math adir_entries = adir_info5
+		math adir_pos = rfrm_pos
+		math adir_pos + 4
+		math rfrm_pos + rfrm_size
+	elif rfrm_id1 == "META"
+		if is_pack != 1
+			cleanexit
+		endif
+		if is_tocc != 1
+			cleanexit
+		endif
+		if is_adir != 1
+			cleanexit
+		endif
+		math is_meta = 1
+		math done + 1
+		get meta_info2 long
+		get meta_info3 long
+		get meta_info4 long
+		math rfrm_pos + 12
+		get meta_info5 long
+		math meta_entries = meta_info5
+		math meta_pos1 = rfrm_pos
+		math meta_pos1 + 4
+		math meta_pos2 = rfrm_pos
+		math rfrm_pos + rfrm_size
+	elif rfrm_id1 == "STRG"
+		if is_pack != 1
+			cleanexit
+		endif
+		if is_tocc != 1
+			cleanexit
+		endif
+		if is_adir != 1
+			cleanexit
+		endif
+		math is_strg = 1
+		math done + 1
+		get strg_info2 long
+		get strg_info3 long
+		get strg_info4 long
+		math rfrm_pos + 12
+		get strg_info5 long
+		math strg_entries = strg_info5
+		math strg_pos = rfrm_pos
+		math strg_pos + 4
+		math rfrm_pos + rfrm_size
+	/*
+	elif rfrm_id1 == "SDX "
+		if is_mtrl != 1
+			cleanexit
+		endif
+		math is_sdx = 1
+		math done = 3
+		get sdx_info1 long
+		get sdx_info2 long
+		get sdx_info3 long
+		get sdx_info4 long
+		get sdx_info5 long
+		get sdx_info6 long
+		get sdx_info7 long
+		math rfrm_pos + 28
+		math sdx_pos = rfrm_pos
+		for i1 = 0 < sdx_info6
+			goto sdx_pos
+			get sdx_info7_info1 long
+			get sdx_info7_info2 long
+			math sdx_pos + 16
+		next i1
+	*/
+	endif
+endfunction
