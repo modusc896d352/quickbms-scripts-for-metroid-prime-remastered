@@ -34,6 +34,7 @@ math done = 1
 math strg_without_meta = 0
 
 math pack_endian_flag = 0
+math tocc_ver = 0
 
 math adir_entries = 0
 math meta_entries = 0
@@ -89,12 +90,19 @@ if is_tocc == 1
 			get entry_signature2 long
 			get entry_signature3 long
 			get entry_signature4 long
-			get entry_properties1 long
-			get entry_properties2 long
-			get entry_offset longlong
-			get decompressed_entry_size longlong
-			get compressed_entry_size longlong
-			math adir_pos + 52
+			math adir_pos + 20
+			if tocc_ver == 1
+				get entry_offset longlong
+				get entry_size longlong
+				math adir_pos + 16
+			elif tocc_ver == 3
+				get entry_properties1 long
+				get entry_properties2 long
+				get entry_offset longlong
+				get decompressed_entry_size longlong
+				get entry_size longlong
+				math adir_pos + 32
+			endif
 			if is_meta != 1
 				if is_strg == 1
 					math strg_without_meta = 1
@@ -131,20 +139,24 @@ if is_tocc == 1
 				math strg_pos + entry_string_size
 				string temp_name1 p "%s.%s" entry_string entry_type_id
 			endif
-			if decompressed_entry_size != compressed_entry_size
-				string adir_warning1 p " ADIR entry %d is compressed. " adir_i
-				print "%adir_warning1%"
-				string adir_warning2 p " i cannot figure it out what that is ATM as details around this one are still hazy here, but don't count on me for that. "
-				print "%adir_warning2%"
-				if is_strg != 1
-					string temp_name2 p "compressed/%s" temp_name1
+			if tocc_ver == 3
+				if decompressed_entry_size != entry_size
+					string adir_warning1 p " ADIR entry %d is compressed. " adir_i
+					print "%adir_warning1%"
+					string adir_warning2 p " i cannot figure it out what that is ATM as details around this one are still hazy here, but don't count on me for that. "
+					print "%adir_warning2%"
+					if is_strg != 1
+						string temp_name2 p "compressed/%s" temp_name1
+					else
+						string temp_name2 p "compressed/%s" temp_name1
+					endif
 				else
-					string temp_name2 p "compressed/%s" temp_name1
+					set temp_name2 string temp_name1
 				endif
 			else
 				set temp_name2 string temp_name1
 			endif
-			log temp_name2 entry_offset compressed_entry_size
+			log temp_name2 entry_offset entry_size
 		next adir_i
 	endif
 	/*
@@ -187,10 +199,15 @@ if is_tocc == 1
 			get entry_signature2 long
 			get entry_signature3 long
 			get entry_signature4 long
-			get entry_string_size long
-			getdstring entry_string entry_string_size
 			math strg_pos + 24
-			math strg_pos + entry_string_size
+			if tocc_ver == 1
+				get entry_string string
+				savepos strg_pos
+			elif tocc_ver == 3
+				get entry_string_size long
+				getdstring entry_string entry_string_size
+				math strg_pos + entry_string_size
+			endif
 		next strg_i
 	endif
 	*/
@@ -237,6 +254,7 @@ startfunction parse_rfrm
 				math is_pack = 1
 				math done + 1
 			elif rfrm_id2 == "TOCC"
+				math tocc_ver = rfrm_info4
 				math is_tocc = 1
 				math done + 1
 			/*
