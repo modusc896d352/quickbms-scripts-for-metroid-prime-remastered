@@ -7,7 +7,7 @@ What this script is is, in its current state, an asset exporter for RFRM files p
 ### Compatibility
 | Name of the Game | Usage Notes |
 | --- | --- |
-| **Donkey Kong Country: Tropical Freeze** | Multilated to shit. Don't expect any miracles. |
+| **Donkey Kong Country: Tropical Freeze** | Borked and fucked-up to shit. Don't expect any miracles. |
 | **Metroid Prime Remastered** | Supports all known pak files from the outset. |
 
 ### Notes about RFRM format
