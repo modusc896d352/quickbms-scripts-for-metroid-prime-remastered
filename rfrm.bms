@@ -1,12 +1,9 @@
 # Donkey Kong Country: Tropical Freeze (Wii U, Switch) - "RFRM" files
 # Metroid Prime Remastered (Switch) - "RFRM" files
 # ---
-# this script doesn't export any in-game asset yet, it just reads dozens upon dozens of chunk metadata and nothing else.
-# ---
 # MaterialArchive.arc (that one file present in all Retro Studios' games starting with Tropical Freeze) isn't fully supported yet.
 # ---
 # (todo) port all of this to C++
-# (todo) acutally support Tropical Freeze files
 
 get pak_name1 filename
 get pak_name2 basename
@@ -146,7 +143,7 @@ if is_tocc == 1
 				string temp_name1 p "%s.%s" entry_string entry_type_id
 			endif
 			*/
-			string temp_name1 p "%05d_[%08x_%08x_%08x_%08x].%s" adir_i entry_signature1 entry_signature2 entry_signature3 entry_signature4 entry_type_id
+			string temp_name1 p "%s/%08x-%08x-%08x-%08x" entry_type_id entry_signature1 entry_signature2 entry_signature3 entry_signature4
 			if tocc_ver == 1
 				set temp_name2 string temp_name1
 			elif tocc_ver == 3
@@ -155,7 +152,7 @@ if is_tocc == 1
 					print "%adir_warning1%"
 					string adir_warning2 p " i cannot figure it out what that is ATM as details around this one are still hazy here, but don't count on me for that. "
 					print "%adir_warning2%"
-					string temp_name2 p "compressed/%s" temp_name1
+					string temp_name2 p "%s.compressed" temp_name1
 				else
 					set temp_name2 string temp_name1
 				endif
