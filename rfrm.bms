@@ -8,8 +8,14 @@
 get pak_name1 filename
 get pak_name2 basename
 
+set rfrm_fourcc1 string ""
+set rfrm_fourcc2 string ""
+set target_fourcc string ""
+
 math pos1 = 0
 math rfrm_pos = 0
+math pack_pos = 0
+math tocc_pos = 0
 math adir_pos = 0
 math meta_pos1 = 0
 math meta_pos2 = 0
@@ -28,10 +34,10 @@ math is_mtrl = 0
 math is_sdx = 0
 */
 math done = 1
-math strg_without_meta = 0
 
 math pack_endian_flag = 0
 math tocc_ver = 0
+math fourcc_in_reverse = 0
 
 math adir_entries = 0
 math meta_entries = 0
@@ -43,13 +49,20 @@ if is_rfrm != "RFRM"
 	print " not an RFRM file. "
 	cleanexit
 endif
-
-for wip = 0 < done
+for wip1 = 0 < 2
 	goto pos1
 	math rfrm_pos = pos1
 	callfunction parse_rfrm 1
 	math pos1 = rfrm_pos
-next wip
+next wip1
+
+if is_pack == 1
+if is_tocc == 1
+	for wip2 = 0 < done
+		callfunction parse_tocc 1
+	next wip2
+endif
+endif
 
 if is_pack != 1
 	print " PACK chunk - not present "
@@ -82,30 +95,8 @@ if is_tocc == 1
 	if is_adir == 1
 		for adir_i = 0 < adir_entries
 			goto adir_pos
-			getdstring entry_type_id 4
-			getdstring entry_signature1 4
-			if pack_endian_flag != 1
-				string entry_signature1 0b entry_signature1
-			else
-				string entry_signature1 0r entry_signature1
-				string entry_signature1 0b entry_signature1
-			endif
-			getdstring entry_signature2 2
-			if pack_endian_flag != 1
-				string entry_signature2 0b entry_signature2
-			else
-				string entry_signature2 0r entry_signature2
-				string entry_signature2 0b entry_signature2
-			endif
-			getdstring entry_signature3 2
-			if pack_endian_flag != 1
-				string entry_signature3 0b entry_signature3
-			else
-				string entry_signature3 0r entry_signature3
-				string entry_signature3 0b entry_signature3
-			endif
-			getdstring entry_signature4 8
-			string entry_signature4 0b entry_signature4
+			callfunction read_fourcc 1
+			callfunction get_guid_from_tocc_chunks 1
 			math adir_pos + 20
 			if tocc_ver == 1
 				get entry_offset longlong
@@ -119,56 +110,52 @@ if is_tocc == 1
 				get entry_size longlong
 				math adir_pos + 32
 			endif
-			if is_meta != 1
-				if is_strg == 1
-					math strg_without_meta = 1
-				endif
-			endif
 			set adir_warning1 string ""
 			set adir_warning2 string ""
 			set temp_name1 string ""
 			set temp_name2 string ""
-			set temp_name3 string ""
-			string temp_name1 p "%s-%s-%s-%s" entry_signature1 entry_signature2 entry_signature3 entry_signature4
-			string temp_name2 p "%s/%s" entry_type_id temp_name1
+			string temp_name1 p "%s/%s" target_fourcc entry_signature_in_full
 			if tocc_ver == 1
-				set temp_name3 string temp_name2
+				set temp_name2 string temp_name1
 			elif tocc_ver == 3
 				if decompressed_entry_size != entry_size
 					string adir_warning1 p " ADIR entry %d is compressed. " adir_i
 					print "%adir_warning1%"
 					string adir_warning2 p " i cannot figure it out what that is ATM as details around this one are still hazy here, but don't count on me for that. "
 					print "%adir_warning2%"
-					string temp_name3 p "%s.compressed" temp_name2
+					string temp_name3 p "%s.compressed" temp_name1
 				else
-					set temp_name3 string temp_name2
+					set temp_name2 string temp_name1
 				endif
 			endif
-			log temp_name3 entry_offset entry_size
+			log temp_name2 entry_offset entry_size
 		next adir_i
 	endif
 	/*
 	if is_adir == 1
 		for adir_i = 0 < adir_entries
 			goto adir_pos
-			getdstring entry_type_id 4
-			get entry_signature1 long
-			get entry_signature2 short
-			get entry_signature3 short
-			get entry_signature4 longlong
-			get entry_offset longlong
-			get decompressed_entry_size longlong
-			get compressed_entry_size longlong
-			math adir_pos + 52
+			callfunction read_fourcc 1
+			callfunction get_guid_from_tocc_chunks 1
+			math adir_pos + 20
+			if tocc_ver == 1
+				get entry_offset longlong
+				get entry_size longlong
+				math adir_pos + 16
+			elif tocc_ver == 3
+				get entry_properties1 long
+				get entry_properties2 long
+				get entry_offset longlong
+				get decompressed_entry_size longlong
+				get entry_size longlong
+				math adir_pos + 32
+			endif
 		next adir_i
 	endif
 	if is_meta == 1
 		for meta_i = 0 < meta_entries
 			goto meta_pos1
-			get entry_signature1 long
-			get entry_signature2 short
-			get entry_signature3 short
-			get entry_signature4 longlong
+			callfunction get_guid_from_tocc_chunks 1
 			get entry_metadata_address long
 			math entry_metadata_address + meta_pos2
 			goto entry_metadata_address
@@ -180,19 +167,19 @@ if is_tocc == 1
 	if is_strg == 1
 		for strg_i = 0 < strg_entries
 			goto strg_pos
-			getdstring entry_type_id_in_reverse 4
-			get entry_signature1 long
-			get entry_signature2 short
-			get entry_signature3 short
-			get entry_signature4 longlong
-			math strg_pos + 24
-			if tocc_ver == 1
+			math fourcc_in_reverse = 1
+			callfunction read_fourcc 1
+			callfunction get_guid_from_tocc_chunks 1
+			math strg_pos + 20
+			get entry_string_size long
+			if entry_string_size < 0x100
+				getdstring entry_string entry_string_size
+				math strg_pos + 4
+				math strg_pos + entry_string_size
+			else
+				goto strg_pos
 				get entry_string string
 				savepos strg_pos
-			elif tocc_ver == 3
-				get entry_string_size long
-				getdstring entry_string entry_string_size
-				math strg_pos + entry_string_size
 			endif
 		next strg_i
 	endif
@@ -203,58 +190,64 @@ endif
 
 startfunction parse_rfrm
 	goto rfrm_pos
-	getdstring rfrm_id1 4
-	get rfrm_size longlong
-	if rfrm_pos == 0
-		# hacky workaround for Tropical Freeze WiiU files
-		if rfrm_size > 0xffffffff
-			endian big
-		else
-			endian little
-		endif
-		goto rfrm_pos
-		getdstring rfrm_id1 4
+	callfunction read_fourcc 1
+	if target_fourcc == "RFRM"
 		get rfrm_size longlong
-	endif
-	if rfrm_id1 == ""
-		if rfrm_size == 0
-			cleanexit
+		if rfrm_pos == 0
+			# hacky workaround for Tropical Freeze WiiU files
+			if rfrm_size > 0xffffffff
+				endian big
+			else
+				endian little
+			endif
+			goto rfrm_pos
+			callfunction read_fourcc 1
+			get rfrm_size longlong
 		endif
-	endif
-	math rfrm_pos + 12
-	if rfrm_id1 == "RFRM"
+		if target_fourcc == ""
+			if rfrm_size == 0
+				cleanexit
+			endif
+		endif
+		get rfrm_info1 longlong
+		math rfrm_pos + 20
+		goto rfrm_pos
+		callfunction read_fourcc 1
 		get rfrm_info2 long
 		get rfrm_info3 long
-		getdstring rfrm_id2 4
-		get rfrm_info4 long
-		get rfrm_info5 long
-		math rfrm_pos + 20
-		if rfrm_info4 == rfrm_info5
-			if rfrm_id2 == "PACK"
-				xmath pack_endian_flag "rfrm_info4 & 1"
+		math rfrm_pos + 12
+		if rfrm_info2 == rfrm_info3
+			if target_fourcc == "PACK"
+				xmath pack_endian_flag "rfrm_info2 & 1"
 				if pack_endian_flag == 1
 					endian little
 				elif pack_endian_flag == 0
 					endian big
 				endif
 				math is_pack = 1
-				math done + 1
-			elif rfrm_id2 == "TOCC"
-				math tocc_ver = rfrm_info4
+				math pack_pos = rfrm_pos
+			elif target_fourcc == "TOCC"
+				math tocc_ver = rfrm_info2
 				math is_tocc = 1
-				math done + 1
-			/*
-			elif rfrm_id2 == "MTRL"
-				math is_mtrl = 1
-				math done = 2
-			*/
-			else
-				math rfrm_pos + rfrm_size
+				math tocc_pos = rfrm_pos
 			endif
-		else
-			math rfrm_pos + rfrm_size
 		endif
-	elif rfrm_id1 == "ADIR"
+		#math rfrm_pos + rfrm_size
+	endif
+endfunction
+
+startfunction parse_tocc
+	goto tocc_pos
+	callfunction read_fourcc 1
+	get tocc_csz longlong
+	get tocc_info2 long
+	if tocc_info2 != 1
+		break
+	endif
+	get tocc_info3 longlong
+	math tocc_pos + 24
+	get tocc_info4 long
+	if target_fourcc == "ADIR"
 		if is_pack != 1
 			cleanexit
 		endif
@@ -263,16 +256,10 @@ startfunction parse_rfrm
 		endif
 		math is_adir = 1
 		math done + 1
-		get adir_info2 long
-		get adir_info3 long
-		get adir_info4 long
-		math rfrm_pos + 12
-		get adir_info5 long
-		math adir_entries = adir_info5
-		math adir_pos = rfrm_pos
+		math adir_entries = tocc_info4
+		math adir_pos = tocc_pos
 		math adir_pos + 4
-		math rfrm_pos + rfrm_size
-	elif rfrm_id1 == "META"
+	elif target_fourcc == "META"
 		if is_pack != 1
 			cleanexit
 		endif
@@ -284,17 +271,11 @@ startfunction parse_rfrm
 		endif
 		math is_meta = 1
 		math done + 1
-		get meta_info2 long
-		get meta_info3 long
-		get meta_info4 long
-		math rfrm_pos + 12
-		get meta_info5 long
-		math meta_entries = meta_info5
-		math meta_pos1 = rfrm_pos
+		math meta_entries = tocc_info4
+		math meta_pos1 = tocc_pos
 		math meta_pos1 + 4
-		math meta_pos2 = rfrm_pos
-		math rfrm_pos + rfrm_size
-	elif rfrm_id1 == "STRG"
+		math meta_pos2 = tocc_pos
+	elif target_fourcc == "STRG"
 		if is_pack != 1
 			cleanexit
 		endif
@@ -306,37 +287,44 @@ startfunction parse_rfrm
 		endif
 		math is_strg = 1
 		math done + 1
-		get strg_info2 long
-		get strg_info3 long
-		get strg_info4 long
-		math rfrm_pos + 12
-		get strg_info5 long
-		math strg_entries = strg_info5
-		math strg_pos = rfrm_pos
+		math strg_entries = tocc_info4
+		math strg_pos = tocc_pos
 		math strg_pos + 4
-		math rfrm_pos + rfrm_size
-	/*
-	elif rfrm_id1 == "SDX "
-		if is_mtrl != 1
-			cleanexit
-		endif
-		math is_sdx = 1
-		math done = 3
-		get sdx_info1 long
-		get sdx_info2 long
-		get sdx_info3 long
-		get sdx_info4 long
-		get sdx_info5 long
-		get sdx_info6 long
-		get sdx_info7 long
-		math rfrm_pos + 28
-		math sdx_pos = rfrm_pos
-		for i1 = 0 < sdx_info6
-			goto sdx_pos
-			get sdx_info7_info1 long
-			get sdx_info7_info2 long
-			math sdx_pos + 16
-		next i1
-	*/
 	endif
+	math tocc_pos + tocc_csz
+endfunction
+
+startfunction read_fourcc
+	getdstring target_fourcc 4
+	if fourcc_in_reverse != 0
+		string target_fourcc r target_fourcc
+	endif
+endfunction
+
+startfunction get_guid_from_tocc_chunks
+	set entry_signature_in_full string ""
+	getdstring entry_signature1 4
+	if pack_endian_flag != 1
+		string entry_signature1 0b entry_signature1
+	else
+		string entry_signature1 0r entry_signature1
+		string entry_signature1 0b entry_signature1
+	endif
+	getdstring entry_signature2 2
+	if pack_endian_flag != 1
+		string entry_signature2 0b entry_signature2
+	else
+		string entry_signature2 0r entry_signature2
+		string entry_signature2 0b entry_signature2
+	endif
+	getdstring entry_signature3 2
+	if pack_endian_flag != 1
+		string entry_signature3 0b entry_signature3
+	else
+		string entry_signature3 0r entry_signature3
+		string entry_signature3 0b entry_signature3
+	endif
+	getdstring entry_signature4 8
+	string entry_signature4 0b entry_signature4
+	string entry_signature_in_full p "%s-%s-%s-%s" entry_signature1 entry_signature2 entry_signature3 entry_signature4
 endfunction
