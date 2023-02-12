@@ -83,12 +83,6 @@ if is_tocc == 1
 		for adir_i = 0 < adir_entries
 			goto adir_pos
 			getdstring entry_type_id 4
-			/*
-			get entry_signature1 long
-			get entry_signature2 short
-			get entry_signature3 short
-			get entry_signature4 longlong
-			*/
 			getdstring entry_signature1 4
 			if pack_endian_flag != 1
 				string entry_signature1 0b entry_signature1
@@ -134,43 +128,7 @@ if is_tocc == 1
 			set adir_warning2 string ""
 			set temp_name1 string ""
 			set temp_name2 string ""
-			set temp_name3 string ""
-			/*
-			if strg_without_meta != 1
-				string temp_name1 p "%05d_[%08x_%08x_%08x_%08x].%s" adir_i entry_signature1 entry_signature2 entry_signature3 entry_signature4 entry_type_id
-			else
-				goto strg_pos
-				getdstring entry_type_id_in_reverse 4
-				get entry_signature1_alt1 long
-				if entry_signature1_alt1 != entry_signature1
-					print " entry signature 1 mismatch "
-				endif
-				get entry_signature2_alt1 long
-				if entry_signature2_alt1 != entry_signature2
-					print " entry signature 1 mismatch "
-				endif
-				get entry_signature3_alt1 long
-				if entry_signature3_alt1 != entry_signature3
-					print " entry signature 1 mismatch "
-				endif
-				get entry_signature4_alt1 long
-				if entry_signature4_alt1 != entry_signature4
-					print " entry signature 1 mismatch "
-				endif
-				math strg_pos + 24
-				if tocc_ver == 1
-					get entry_string string
-					savepos strg_pos
-				elif tocc_ver == 3
-					get entry_string_size long
-					getdstring entry_string entry_string_size
-					math strg_pos + entry_string_size
-				endif
-				string temp_name1 p "%s.%s" entry_string entry_type_id
-			endif
-			*/
-			#string temp_name1 p "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x" entry_signature1 entry_signature2 entry_signature3 entry_signature4 entry_signature5 entry_signature6 entry_signature7 entry_signature8 entry_signature9 entry_signature10 entry_signature11
-			string temp_name1 p "%s-%s-%s-%s" entry_signature1 entry_signature2 entry_signature3 entry_signature4
+			set temp_name3 string ""string temp_name1 p "%s-%s-%s-%s" entry_signature1 entry_signature2 entry_signature3 entry_signature4
 			string temp_name2 p "%s/%s" entry_type_id temp_name1
 			if tocc_ver == 1
 				set temp_name3 string temp_name2
