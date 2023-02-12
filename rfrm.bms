@@ -167,7 +167,9 @@ if is_tocc == 1
 	if is_strg == 1
 		for strg_i = 0 < strg_entries
 			goto strg_pos
-			math fourcc_in_reverse = 1
+			if pack_endian_flag == 1
+				math fourcc_in_reverse = 1
+			endif
 			callfunction read_fourcc 1
 			callfunction get_guid_from_tocc_chunks 1
 			math strg_pos + 20
