@@ -128,7 +128,8 @@ if is_tocc == 1
 			set adir_warning2 string ""
 			set temp_name1 string ""
 			set temp_name2 string ""
-			set temp_name3 string ""string temp_name1 p "%s-%s-%s-%s" entry_signature1 entry_signature2 entry_signature3 entry_signature4
+			set temp_name3 string ""
+			string temp_name1 p "%s-%s-%s-%s" entry_signature1 entry_signature2 entry_signature3 entry_signature4
 			string temp_name2 p "%s/%s" entry_type_id temp_name1
 			if tocc_ver == 1
 				set temp_name3 string temp_name2
