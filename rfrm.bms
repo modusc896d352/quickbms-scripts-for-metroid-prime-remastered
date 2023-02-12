@@ -8,8 +8,6 @@
 get pak_name1 filename
 get pak_name2 basename
 
-set rfrm_fourcc1 string ""
-set rfrm_fourcc2 string ""
 set target_fourcc string ""
 
 math pos1 = 0
@@ -50,12 +48,13 @@ if is_rfrm != "RFRM"
 	print " not an RFRM file. "
 	cleanexit
 endif
-for wip1 = 0 < 2
-	goto pos1
-	math rfrm_pos = pos1
+
+goto pos1
+math rfrm_pos = pos1
+callfunction parse_rfrm 1
+if is_pack == 1
 	callfunction parse_rfrm 1
-	math pos1 = rfrm_pos
-next wip1
+endif
 
 if is_pack == 1
 if is_tocc == 1
@@ -124,7 +123,7 @@ if is_tocc == 1
 					print "%adir_warning1%"
 					string adir_warning2 p " i cannot figure it out what that is ATM as details around this one are still hazy here, but don't count on me for that. "
 					print "%adir_warning2%"
-					string temp_name3 p "%s.compressed" temp_name1
+					string temp_name2 p "%s.compressed" temp_name1
 				else
 					set temp_name2 string temp_name1
 				endif
