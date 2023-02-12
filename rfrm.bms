@@ -83,10 +83,35 @@ if is_tocc == 1
 		for adir_i = 0 < adir_entries
 			goto adir_pos
 			getdstring entry_type_id 4
+			/*
 			get entry_signature1 long
-			get entry_signature2 long
-			get entry_signature3 long
-			get entry_signature4 long
+			get entry_signature2 short
+			get entry_signature3 short
+			get entry_signature4 longlong
+			*/
+			getdstring entry_signature1 4
+			if pack_endian_flag != 1
+				string entry_signature1 0b entry_signature1
+			else
+				string entry_signature1 0r entry_signature1
+				string entry_signature1 0b entry_signature1
+			endif
+			getdstring entry_signature2 2
+			if pack_endian_flag != 1
+				string entry_signature2 0b entry_signature2
+			else
+				string entry_signature2 0r entry_signature2
+				string entry_signature2 0b entry_signature2
+			endif
+			getdstring entry_signature3 2
+			if pack_endian_flag != 1
+				string entry_signature3 0b entry_signature3
+			else
+				string entry_signature3 0r entry_signature3
+				string entry_signature3 0b entry_signature3
+			endif
+			getdstring entry_signature4 8
+			string entry_signature4 0b entry_signature4
 			math adir_pos + 20
 			if tocc_ver == 1
 				get entry_offset longlong
@@ -109,6 +134,7 @@ if is_tocc == 1
 			set adir_warning2 string ""
 			set temp_name1 string ""
 			set temp_name2 string ""
+			set temp_name3 string ""
 			/*
 			if strg_without_meta != 1
 				string temp_name1 p "%05d_[%08x_%08x_%08x_%08x].%s" adir_i entry_signature1 entry_signature2 entry_signature3 entry_signature4 entry_type_id
@@ -143,21 +169,23 @@ if is_tocc == 1
 				string temp_name1 p "%s.%s" entry_string entry_type_id
 			endif
 			*/
-			string temp_name1 p "%s/%08x-%08x-%08x-%08x" entry_type_id entry_signature1 entry_signature2 entry_signature3 entry_signature4
+			#string temp_name1 p "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x" entry_signature1 entry_signature2 entry_signature3 entry_signature4 entry_signature5 entry_signature6 entry_signature7 entry_signature8 entry_signature9 entry_signature10 entry_signature11
+			string temp_name1 p "%s-%s-%s-%s" entry_signature1 entry_signature2 entry_signature3 entry_signature4
+			string temp_name2 p "%s/%s" entry_type_id temp_name1
 			if tocc_ver == 1
-				set temp_name2 string temp_name1
+				set temp_name3 string temp_name2
 			elif tocc_ver == 3
 				if decompressed_entry_size != entry_size
 					string adir_warning1 p " ADIR entry %d is compressed. " adir_i
 					print "%adir_warning1%"
 					string adir_warning2 p " i cannot figure it out what that is ATM as details around this one are still hazy here, but don't count on me for that. "
 					print "%adir_warning2%"
-					string temp_name2 p "%s.compressed" temp_name1
+					string temp_name3 p "%s.compressed" temp_name2
 				else
-					set temp_name2 string temp_name1
+					set temp_name3 string temp_name2
 				endif
 			endif
-			log temp_name2 entry_offset entry_size
+			log temp_name3 entry_offset entry_size
 		next adir_i
 	endif
 	/*
@@ -166,11 +194,9 @@ if is_tocc == 1
 			goto adir_pos
 			getdstring entry_type_id 4
 			get entry_signature1 long
-			get entry_signature2 long
-			get entry_signature3 long
-			get entry_signature4 long
-			get entry_properties1 long
-			get entry_properties2 long
+			get entry_signature2 short
+			get entry_signature3 short
+			get entry_signature4 longlong
 			get entry_offset longlong
 			get decompressed_entry_size longlong
 			get compressed_entry_size longlong
@@ -181,9 +207,9 @@ if is_tocc == 1
 		for meta_i = 0 < meta_entries
 			goto meta_pos1
 			get entry_signature1 long
-			get entry_signature2 long
-			get entry_signature3 long
-			get entry_signature4 long
+			get entry_signature2 short
+			get entry_signature3 short
+			get entry_signature4 longlong
 			get entry_metadata_address long
 			math entry_metadata_address + meta_pos2
 			goto entry_metadata_address
@@ -197,9 +223,9 @@ if is_tocc == 1
 			goto strg_pos
 			getdstring entry_type_id_in_reverse 4
 			get entry_signature1 long
-			get entry_signature2 long
-			get entry_signature3 long
-			get entry_signature4 long
+			get entry_signature2 short
+			get entry_signature3 short
+			get entry_signature4 longlong
 			math strg_pos + 24
 			if tocc_ver == 1
 				get entry_string string
